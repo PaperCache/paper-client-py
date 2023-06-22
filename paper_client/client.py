@@ -10,7 +10,7 @@ class PaperPolicy(Enum):
 	MRU = 1
 
 class PaperClient:
-	def __init__(self, host, port):
+	def __init__(self, host = '127.0.0.1', port = 3145):
 		self.client = TcpClient(host, port)
 
 	def ping(self):
@@ -84,13 +84,15 @@ class PaperClient:
 		used_size = self.client.read_u64()
 		total_gets = self.client.read_u64()
 		miss_ratio = self.client.read_f64()
+		policy_index = self.client.read_u8()
 
 		return (
 			ok,
 			max_size,
 			used_size,
 			total_gets,
-			miss_ratio
+			miss_ratio,
+			get_policy_from_index(policy_index)
 		)
 
 	def __process_str(self, buf):
@@ -100,3 +102,10 @@ class PaperClient:
 		data = self.client.read_str()
 
 		return (ok, data)
+
+def get_policy_from_index(policy_index):
+	if policy_index == 0:
+		return PaperPolicy.LRU
+
+	if policy_index == 1:
+		return PaperPolicy.MRU
