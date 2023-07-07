@@ -48,7 +48,7 @@ class PaperClient:
 
 		return self.__process_str(buf)
 
-	def clear(self):
+	def wipe(self):
 		buf = Buffer()
 		buf.write_u8(5)
 
