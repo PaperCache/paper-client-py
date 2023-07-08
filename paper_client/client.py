@@ -6,8 +6,10 @@ from paper_client.buffer import Buffer;
 OK_VALUE = 33
 
 class PaperPolicy(Enum):
-	LRU = 0
-	MRU = 1
+	LFU = 0
+	LRU = 1
+	MRU = 2
+	FIFO = 3
 
 class PaperClient:
 	def __init__(self, host = '127.0.0.1', port = 3145):
@@ -105,7 +107,13 @@ class PaperClient:
 
 def get_policy_from_index(policy_index):
 	if policy_index == 0:
-		return PaperPolicy.LRU
+		return PaperPolicy.LFU
 
 	if policy_index == 1:
+		return PaperPolicy.LRU
+
+	if policy_index == 2:
 		return PaperPolicy.MRU
+
+	if policy_index == 3:
+		return PaperPolicy.FIFO
