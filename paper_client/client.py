@@ -87,6 +87,7 @@ class PaperClient:
 		total_gets = self.client.read_u64()
 		miss_ratio = self.client.read_f64()
 		policy_index = self.client.read_u8()
+		uptime = self.client.read_u64()
 
 		return (
 			ok,
@@ -94,7 +95,8 @@ class PaperClient:
 			used_size,
 			total_gets,
 			miss_ratio,
-			get_policy_from_index(policy_index)
+			get_policy_from_index(policy_index),
+			uptime
 		)
 
 	def __process_str(self, buf):
