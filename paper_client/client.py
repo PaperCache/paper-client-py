@@ -7,9 +7,9 @@ OK_VALUE = 33
 
 class PaperPolicy(Enum):
 	LFU = 0
-	LRU = 1
-	MRU = 2
-	FIFO = 3
+	FIFO = 1
+	LRU = 2
+	MRU = 3
 
 class PaperClient:
 	def __init__(self, host = '127.0.0.1', port = 3145):
@@ -112,10 +112,10 @@ def get_policy_from_index(policy_index):
 		return PaperPolicy.LFU
 
 	if policy_index == 1:
-		return PaperPolicy.LRU
+		return PaperPolicy.FIFO
 
 	if policy_index == 2:
-		return PaperPolicy.MRU
+		return PaperPolicy.LRU
 
 	if policy_index == 3:
-		return PaperPolicy.FIFO
+		return PaperPolicy.MRU
