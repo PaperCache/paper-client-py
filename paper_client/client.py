@@ -8,6 +8,10 @@ from paper_client.stats import PaperStats
 class PaperClient:
 	def __init__(self, host: str = "127.0.0.1", port: int = 3145):
 		self.client = TcpClient(host, port)
+		(ping_ok, _) = self.ping()
+
+		if not ping_ok:
+			raise Exception("Connection refused")
 
 	def ping(self) -> Tuple[bool, str]:
 		buf = Buffer()
