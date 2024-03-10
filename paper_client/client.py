@@ -72,6 +72,14 @@ class PaperClient:
 
 		return self.__process_str(buf)
 
+	def ttl(self, key: str, ttl: int = 0) -> Tuple[bool, str]:
+		buf = Buffer()
+		buf.write_u8(CommandByte.TTL.value)
+		buf.write_str(key)
+		buf.write_u32(ttl)
+
+		return self.__process_str(buf)
+
 	def wipe(self) -> Tuple[bool, str]:
 		buf = Buffer()
 		buf.write_u8(CommandByte.WIPE.value)
@@ -159,10 +167,11 @@ class CommandByte(Enum):
 
 	HAS = 5
 	PEEK = 6
+	TTL = 7
 
-	WIPE = 7
+	WIPE = 8
 
-	RESIZE = 8
-	POLICY = 9
+	RESIZE = 9
+	POLICY = 10
 
-	STATS = 10
+	STATS = 11
