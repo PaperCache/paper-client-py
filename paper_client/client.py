@@ -80,6 +80,23 @@ class PaperClient:
 
 		return self.__process_str(buf)
 
+	def size(self, key: str) -> Union[Tuple[Literal[True], int], Tuple[Literal[False], str]]:
+		buf = Buffer()
+		buf.write_u8(CommandByte.SIZE.value)
+		buf.write_str(key)
+
+		self.client.send(buf)
+
+		is_ok = self.client.read_bool()
+
+		if not is_ok:
+			data = self.client.read_str()
+			return (is_ok, data)
+
+		size = self.client.read_u64()
+
+		return (is_ok, size)
+
 	def wipe(self) -> Tuple[bool, str]:
 		buf = Buffer()
 		buf.write_u8(CommandByte.WIPE.value)
@@ -168,10 +185,11 @@ class CommandByte(Enum):
 	HAS = 5
 	PEEK = 6
 	TTL = 7
+	SIZE = 8
 
-	WIPE = 8
+	WIPE = 9
 
-	RESIZE = 9
-	POLICY = 10
+	RESIZE = 10
+	POLICY = 11
 
-	STATS = 11
+	STATS = 12
