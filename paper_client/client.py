@@ -5,9 +5,23 @@ from paper_client.buffer import Buffer
 from paper_client.policy import PaperPolicy
 from paper_client.stats import PaperStats
 
+MAX_RECONNECT_ATTEMPTS = 3
+
 class PaperClient:
+	__host: str
+	__port: int
+
+	__auth_token: str
+	__reconnect_attempts: int
+
 	def __init__(self, host: str = "127.0.0.1", port: int = 3145):
-		self.client = TcpClient(host, port)
+		self.__host = host
+		self.__port = port
+
+		self.__auth_token = ""
+		self.__reconnect_attempts = 0
+
+		self.__client = TcpClient(host, port)
 		(ping_ok, _) = self.ping()
 
 		if not ping_ok:
@@ -22,6 +36,15 @@ class PaperClient:
 	def version(self) -> Tuple[bool, str]:
 		buf = Buffer()
 		buf.write_u8(CommandByte.VERSION.value)
+
+		return self.__process_str(buf)
+
+	def auth(self, token: str) -> Tuple[bool, str]:
+		buf = Buffer()
+		buf.write_u8(CommandByte.AUTH.value)
+		buf.write_str(token)
+
+		self.__auth_token = token
 
 		return self.__process_str(buf)
 
@@ -53,17 +76,7 @@ class PaperClient:
 		buf.write_u8(CommandByte.HAS.value)
 		buf.write_str(key)
 
-		self.client.send(buf)
-
-		is_ok = self.client.read_bool()
-
-		if not is_ok:
-			data = self.client.read_str()
-			return (is_ok, data)
-
-		has = self.client.read_bool()
-
-		return (is_ok, has)
+		return self.__process_has(buf)
 
 	def peek(self, key: str) -> Tuple[bool, str]:
 		buf = Buffer()
@@ -85,17 +98,7 @@ class PaperClient:
 		buf.write_u8(CommandByte.SIZE.value)
 		buf.write_str(key)
 
-		self.client.send(buf)
-
-		is_ok = self.client.read_bool()
-
-		if not is_ok:
-			data = self.client.read_str()
-			return (is_ok, data)
-
-		size = self.client.read_u64()
-
-		return (is_ok, size)
+		return self.__process_size(buf)
 
 	def wipe(self) -> Tuple[bool, str]:
 		buf = Buffer()
@@ -121,43 +124,116 @@ class PaperClient:
 		buf = Buffer()
 		buf.write_u8(CommandByte.STATS.value)
 
-		self.client.send(buf)
+		return self.__process_stats(buf)
 
-		is_ok = self.client.read_bool()
+	def disconnect(self):
+		self.__client.disconnect()
 
-		if not is_ok:
-			data = self.client.read_str()
+	def __reconnect(self) -> int:
+		self.__reconnect_attempts += 1
+
+		if self.__reconnect_attempts > MAX_RECONNECT_ATTEMPTS:
+			return -1
+
+		self.__client = TcpClient(self.__host, self.__port)
+
+		if len(self.__auth_token) > 0:
+			self.auth(self.__auth_token)
+
+		return 0
+
+	def __process_str(self, buf) -> Tuple[bool, str]:
+		try:
+			self.__client.send(buf)
+
+			is_ok = self.__client.read_bool()
+			data = self.__client.read_str()
+
+			self.__reconnect_attempts = 0
 			return (is_ok, data)
+		except:
+			if self.__reconnect() != 0:
+				raise Exception("Could not reconnect to PaperServer")
 
-		max_size = self.client.read_u64()
-		used_size = self.client.read_u64()
-		total_gets = self.client.read_u64()
-		total_sets = self.client.read_u64()
-		total_dels = self.client.read_u64()
-		miss_ratio = self.client.read_f64()
-		policy_index = self.client.read_u8()
-		uptime = self.client.read_u64()
+			return self.__process_str(buf)
 
-		stats = PaperStats(
-			max_size,
-			used_size,
-			total_gets,
-			total_sets,
-			total_dels,
-			miss_ratio,
-			get_policy_from_index(policy_index),
-			uptime
-		)
+	def __process_has(self, buf) -> Union[Tuple[Literal[True], bool], Tuple[Literal[False], str]]:
+		try:
+			self.__client.send(buf)
 
-		return (is_ok, stats)
+			is_ok = self.__client.read_bool()
 
-	def __process_str(self, buf):
-		self.client.send(buf)
+			if not is_ok:
+				data = self.__client.read_str()
+				return (is_ok, data)
 
-		is_ok = self.client.read_bool()
-		data = self.client.read_str()
+			has = self.__client.read_bool()
 
-		return (is_ok, data)
+			self.__reconnect_attempts = 0
+			return (is_ok, has)
+		except:
+			if self.__reconnect() != 0:
+				raise Exception("Could not reconnect to PaperServer")
+
+			return self.__process_has(buf)
+
+	def __process_size(self, buf) -> Union[Tuple[Literal[True], int], Tuple[Literal[False], str]]:
+		try:
+			self.__client.send(buf)
+
+			is_ok = self.__client.read_bool()
+
+			if not is_ok:
+				data = self.__client.read_str()
+				return (is_ok, data)
+
+			size = self.__client.read_u64()
+
+			self.__reconnect_attempts = 0
+			return (is_ok, size)
+		except:
+			if self.__reconnect() != 0:
+				raise Exception("Could not reconnect to PaperServer")
+
+			return self.__process_size(buf)
+
+	def __process_stats(self, buf) -> Union[Tuple[Literal[True], PaperStats], Tuple[Literal[False], str]]:
+		try:
+			self.__client.send(buf)
+
+			is_ok = self.__client.read_bool()
+
+			if not is_ok:
+				data = self.__client.read_str()
+				return (is_ok, data)
+
+			max_size = self.__client.read_u64()
+			used_size = self.__client.read_u64()
+			total_gets = self.__client.read_u64()
+			total_sets = self.__client.read_u64()
+			total_dels = self.__client.read_u64()
+			miss_ratio = self.__client.read_f64()
+			policy_index = self.__client.read_u8()
+			uptime = self.__client.read_u64()
+
+			stats = PaperStats(
+				max_size,
+				used_size,
+				total_gets,
+				total_sets,
+				total_dels,
+				miss_ratio,
+				get_policy_from_index(policy_index),
+				uptime
+			)
+
+			self.__reconnect_attempts = 0
+			return (is_ok, stats)
+		except:
+			if self.__reconnect() != 0:
+				raise Exception("Could not reconnect to PaperServer")
+
+			return self.__process_stats(buf)
 
 def get_policy_from_index(policy_index: int) -> PaperPolicy:
 	if policy_index == 0:
@@ -178,18 +254,20 @@ class CommandByte(Enum):
 	PING = 0
 	VERSION = 1
 
-	GET = 2
-	SET = 3
-	DEL = 4
+	AUTH = 2
 
-	HAS = 5
-	PEEK = 6
-	TTL = 7
-	SIZE = 8
+	GET = 3
+	SET = 4
+	DEL = 5
 
-	WIPE = 9
+	HAS = 6
+	PEEK = 7
+	TTL = 8
+	SIZE = 9
 
-	RESIZE = 10
-	POLICY = 11
+	WIPE = 10
 
-	STATS = 12
+	RESIZE = 11
+	POLICY = 12
+
+	STATS = 13
