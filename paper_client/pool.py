@@ -3,7 +3,7 @@ from threading import Lock
 from paper_client.client import PaperClient
 
 class PaperPool:
-	def __init__(self, host: str = "127.0.0.1", port: int = 3145, size: int = 2):
+	def __init__(self, paper_addr: str = "paper://127.0.0.1:3145", size: int = 2):
 		self.clients: List[PaperClient] = []
 		self.client_locks: List[Lock] = []
 
@@ -11,7 +11,7 @@ class PaperPool:
 		self.index_lock = Lock()
 
 		for _ in range(size):
-			self.clients.append(PaperClient(host, port))
+			self.clients.append(PaperClient(paper_addr))
 			self.client_locks.append(Lock())
 
 	def auth(self, token: str):

@@ -14,14 +14,19 @@ class PaperClient:
 	__auth_token: str
 	__reconnect_attempts: int
 
-	def __init__(self, host: str = "127.0.0.1", port: int = 3145):
-		self.__host = host
-		self.__port = port
+	def __init__(self, paper_addr: str = "paper://127.0.0.1:3145"):
+		if not paper_addr.startswith("paper://"):
+			raise Exception("Invalid Paper address")
+
+		parsed = paper_addr.removeprefix("paper://").split(':')
+
+		self.__host = parsed[0]
+		self.__port = int(parsed[1])
 
 		self.__auth_token = ""
 		self.__reconnect_attempts = 0
 
-		self.__client = TcpClient(host, port)
+		self.__client = TcpClient(self.__host, self.__port)
 		(ping_ok, _) = self.ping()
 
 		if not ping_ok:
