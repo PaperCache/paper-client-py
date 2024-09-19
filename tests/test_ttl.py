@@ -1,19 +1,19 @@
 import unittest
 from tests.tester import Tester
+from paper_client import PaperError
 
 class TestTtl(Tester):
 	def test_ttl_existent(self):
 		self.client.set("key", "value")
-		(is_ok, data) = self.client.ttl("key", 5)
+		(is_ok, _) = self.client.ttl("key", 5)
 
 		self.assertTrue(is_ok)
-		self.assertEqual(data, "done")
 
 	def test_ttl_non_existent(self):
-		(is_ok, data) = self.client.ttl("key", 5)
+		(is_ok, error) = self.client.ttl("key", 5)
 
 		self.assertFalse(is_ok)
-		self.assertNotEqual(len(data), 0)
+		self.assertEqual(error, PaperError.KEY_NOT_FOUND)
 
 if __name__ == "__main__":
 	unittest.main()

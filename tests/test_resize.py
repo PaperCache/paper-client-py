@@ -7,16 +7,14 @@ class TestResize(Tester):
 		INITIAL_SIZE = 10 * 1024 ** 2;
 		UPDATED_SIZE = 20 * 1024 ** 2;
 
-		(initial_is_ok, initial_data) = self.client.resize(INITIAL_SIZE)
+		(initial_is_ok, _) = self.client.resize(INITIAL_SIZE)
 
 		self.assertTrue(initial_is_ok)
-		self.assertEqual(initial_data, "done")
 		self.assertEqual(self.get_size(), INITIAL_SIZE)
 
-		(updated_is_ok, updated_data) = self.client.resize(UPDATED_SIZE)
+		(updated_is_ok, _) = self.client.resize(UPDATED_SIZE)
 
 		self.assertTrue(updated_is_ok)
-		self.assertEqual(updated_data, "done")
 		self.assertEqual(self.get_size(), UPDATED_SIZE)
 
 	def get_size(self):
