@@ -224,7 +224,7 @@ class PaperClient:
 				error = get_error_from_client(self.__client)
 				return (is_ok, error)
 
-			size = self.__client.read_u64()
+			size = self.__client.read_u32()
 
 			self.__reconnect_attempts = 0
 			return (is_ok, size)
