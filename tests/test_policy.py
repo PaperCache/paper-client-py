@@ -1,11 +1,11 @@
 import unittest
-from paper_client import PaperPolicy, PaperStats
+from paper_client import PaperStats
 from tests.tester import Tester
 
 class TestPolicy(Tester):
 	def test_policy(self):
-		INITIAL_POLICY = PaperPolicy.LFU
-		UPDATED_POLICY = PaperPolicy.LRU
+		INITIAL_POLICY = "lfu"
+		UPDATED_POLICY = "lru"
 
 		(initial_is_ok, _) = self.client.policy(INITIAL_POLICY)
 

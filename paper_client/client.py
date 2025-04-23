@@ -3,7 +3,6 @@ from typing import TypeAlias, Union, Tuple, Literal
 from paper_client.tcp_client import TcpClient
 from paper_client.buffer import Buffer
 from paper_client.error import PaperError
-from paper_client.policy import PaperPolicy
 from paper_client.stats import PaperStats
 
 MAX_RECONNECT_ATTEMPTS = 3
@@ -124,10 +123,10 @@ class PaperClient:
 
 		return self.__process(buf)
 
-	def policy(self, paper_policy: PaperPolicy) -> ResponseResult:
+	def policy(self, policy: str) -> ResponseResult:
 		buf = Buffer()
 		buf.write_u8(CommandByte.POLICY.value)
-		buf.write_u8(paper_policy.value)
+		buf.write_str(policy)
 
 		return self.__process(buf)
 
@@ -246,21 +245,40 @@ class PaperClient:
 
 			max_size = self.__client.read_u64()
 			used_size = self.__client.read_u64()
+			num_objects = self.__client.read_u64()
+
 			total_gets = self.__client.read_u64()
 			total_sets = self.__client.read_u64()
 			total_dels = self.__client.read_u64()
+
 			miss_ratio = self.__client.read_f64()
-			policy_index = self.__client.read_u8()
+
+			num_policies = self.__client.read_u32()
+			policies = []
+
+			for i in range(num_policies):
+				policies.append(self.__client.read_str())
+
+			policy = self.__client.read_str()
+			is_auto_policy = self.__client.read_bool()
+
 			uptime = self.__client.read_u64()
 
 			stats = PaperStats(
 				max_size,
 				used_size,
+				num_objects,
+
 				total_gets,
 				total_sets,
 				total_dels,
+
 				miss_ratio,
-				get_policy_from_index(policy_index),
+
+				policies,
+				policy,
+				is_auto_policy,
+
 				uptime
 			)
 
@@ -281,21 +299,6 @@ def handshake(client: TcpClient) -> Union[Tuple[Literal[True], None], Tuple[Lite
 
 	return (is_ok, None)
 
-def get_policy_from_index(policy_index: int) -> PaperPolicy:
-	if policy_index == 0:
-		return PaperPolicy.LFU
-
-	if policy_index == 1:
-		return PaperPolicy.FIFO
-
-	if policy_index == 2:
-		return PaperPolicy.LRU
-
-	if policy_index == 3:
-		return PaperPolicy.MRU
-
-	raise ValueError("Invalid policy index")
-
 def get_error_from_client(client: TcpClient) -> PaperError:
 	code = client.read_u8()
 
@@ -310,6 +313,10 @@ def get_error_from_client(client: TcpClient) -> PaperError:
 			return PaperError.EXCEEDING_VALUE_SIZE
 		elif cache_code == 4:
 			return PaperError.ZERO_CACHE_SIZE
+		elif cache_code == 5:
+			return PaperError.UNCONFIGURED_POLICY
+		elif cache_code == 6:
+			return PaperError.INVALID_POLICY
 		else:
 			return PaperError.INTERNAL
 

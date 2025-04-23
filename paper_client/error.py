@@ -12,3 +12,6 @@ class PaperError(Enum):
 	EXCEEDING_VALUE_SIZE = auto(),
 
 	ZERO_CACHE_SIZE = auto(),
+
+	UNCONFIGURED_POLICY = auto(),
+	INVALID_POLICY = auto(),
