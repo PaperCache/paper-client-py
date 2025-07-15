@@ -1,5 +1,5 @@
 import unittest
-from paper_client import PaperStats
+from paper_client import PaperStatus
 from tests.tester import Tester
 
 class TestPolicy(Tester):
@@ -18,9 +18,9 @@ class TestPolicy(Tester):
 		self.assertEqual(self.get_policy(), UPDATED_POLICY)
 
 	def get_policy(self):
-		(_, data) = self.client.stats()
+		(_, data) = self.client.status()
 
-		if isinstance(data, PaperStats):
+		if isinstance(data, PaperStatus):
 			return data.policy
 
 		self.fail("Could not get size of cache")

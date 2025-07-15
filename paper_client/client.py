@@ -3,7 +3,7 @@ from typing import TypeAlias, Union, Tuple, Literal
 from paper_client.tcp_client import TcpClient
 from paper_client.buffer import Buffer
 from paper_client.error import PaperError
-from paper_client.stats import PaperStats
+from paper_client.status import PaperStatus
 
 MAX_RECONNECT_ATTEMPTS = 3
 
@@ -11,7 +11,7 @@ ResponseResult: TypeAlias = Union[Tuple[Literal[True], None], Tuple[Literal[Fals
 DataResponseResult: TypeAlias = Union[Tuple[Literal[True], str], Tuple[Literal[False], PaperError]]
 HasResponseResult: TypeAlias = Union[Tuple[Literal[True], bool], Tuple[Literal[False], PaperError]]
 SizeResponseResult: TypeAlias = Union[Tuple[Literal[True], int], Tuple[Literal[False], PaperError]]
-StatsResponseResult: TypeAlias = Union[Tuple[Literal[True], PaperStats], Tuple[Literal[False], PaperError]]
+StatusResponseResult: TypeAlias = Union[Tuple[Literal[True], PaperStatus], Tuple[Literal[False], PaperError]]
 
 class PaperClient:
 	__host: str
@@ -130,11 +130,11 @@ class PaperClient:
 
 		return self.__process(buf)
 
-	def stats(self) -> StatsResponseResult:
+	def status(self) -> StatusResponseResult:
 		buf = Buffer()
-		buf.write_u8(CommandByte.STATS.value)
+		buf.write_u8(CommandByte.STATUS.value)
 
-		return self.__process_stats(buf)
+		return self.__process_status(buf)
 
 	def disconnect(self):
 		self.__client.disconnect()
@@ -233,7 +233,7 @@ class PaperClient:
 
 			return self.__process_size(buf)
 
-	def __process_stats(self, buf) -> StatsResponseResult:
+	def __process_status(self, buf) -> StatusResponseResult:
 		try:
 			self.__client.send(buf)
 
@@ -243,9 +243,14 @@ class PaperClient:
 				error = get_error_from_client(self.__client)
 				return (is_ok, error)
 
+			pid = self.__client.read_u32()
+
 			max_size = self.__client.read_u64()
 			used_size = self.__client.read_u64()
 			num_objects = self.__client.read_u64()
+
+			rss = self.__client.read_u64()
+			hwm = self.__client.read_u64()
 
 			total_gets = self.__client.read_u64()
 			total_sets = self.__client.read_u64()
@@ -264,10 +269,15 @@ class PaperClient:
 
 			uptime = self.__client.read_u64()
 
-			stats = PaperStats(
+			status = PaperStatus(
+				pid,
+
 				max_size,
 				used_size,
 				num_objects,
+
+				rss,
+				hwm,
 
 				total_gets,
 				total_sets,
@@ -283,12 +293,12 @@ class PaperClient:
 			)
 
 			self.__reconnect_attempts = 0
-			return (is_ok, stats)
+			return (is_ok, status)
 		except:
 			if not self.__reconnect():
 				raise Exception("Could not reconnect to PaperServer")
 
-			return self.__process_stats(buf)
+			return self.__process_status(buf)
 
 def handshake(client: TcpClient) -> Union[Tuple[Literal[True], None], Tuple[Literal[False], PaperError]]:
 	is_ok = client.read_bool()
@@ -347,4 +357,4 @@ class CommandByte(Enum):
 	RESIZE = 11
 	POLICY = 12
 
-	STATS = 13
+	STATUS = 13

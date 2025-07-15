@@ -1,5 +1,5 @@
 import unittest
-from paper_client import PaperStats
+from paper_client import PaperStatus
 from tests.tester import Tester
 
 class TestResize(Tester):
@@ -18,9 +18,9 @@ class TestResize(Tester):
 		self.assertEqual(self.get_size(), UPDATED_SIZE)
 
 	def get_size(self):
-		(_, data) = self.client.stats()
+		(_, data) = self.client.status()
 
-		if isinstance(data, PaperStats):
+		if isinstance(data, PaperStatus):
 			return data.max_size
 
 		self.fail("Could not get size of cache")

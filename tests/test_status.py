@@ -1,9 +1,9 @@
 import unittest
 from tests.tester import Tester
 
-class TestStats(Tester):
-	def test_stats(self):
-		(is_ok, _) = self.client.stats()
+class TestStatus(Tester):
+	def test_status(self):
+		(is_ok, _) = self.client.status()
 
 		self.assertTrue(is_ok)
 

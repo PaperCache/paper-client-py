@@ -1,9 +1,14 @@
-class PaperStats:
+class PaperStatus:
 	def __init__(
 		self,
+		pid: int,
+
 		max_size: int,
 		used_size: int,
 		num_objects: int,
+
+		rss: int,
+		hwm: int,
 
 		total_gets: int,
 		total_sets: int,
@@ -17,9 +22,14 @@ class PaperStats:
 
 		uptime: int
 	):
+		self.pid = pid
+
 		self.max_size = max_size
 		self.used_size = used_size
 		self.num_objects = num_objects
+
+		self.rss = rss
+		self.hwm = hwm
 
 		self.total_gets = total_gets
 		self.total_sets = total_sets
